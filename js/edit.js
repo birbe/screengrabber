@@ -22,7 +22,6 @@ scrubber.onUserScrubbed = t=>{
 
 function updateScreenSize() {
   let rect = $("#scrubber-panel")[0].getBoundingClientRect();
-  console.log(rect);
   let { width, height } = rect;
 
   scrubber.setDimensions(width, height);
@@ -96,10 +95,10 @@ $("#export-mp4").click(async ()=>{
 
   await worker.load();
   await worker.write(`${message.file}`,`../video/${message.file}`);
-  //await worker.run(`-i ${message.file} -codec copy ${message.id}.mp4`);
-  await worker.run(`-i ${message.file} -ss ${secondsToTimestamp(scrubber.beginTime)} -t ${secondsToTimestamp(scrubber.endTime)} -c copy ${message.id}.mp4`);
-  //await worker.trim(`${message.id}.mp4`,`${message.id}cropped.mp4`,secondsToTimestamp(scrubber.beginTime),secondsToTimestamp(scrubber.endTime));
-  const { data } = await worker.read(`${message.id}cropped.mp4`);
+  await worker.run(`-i ${message.file} -codec copy ${message.id}.mp4`);
+  await worker.run(`-i ${message.id}.mp4 -ss ${secondsToTimestamp(scrubber.beginTime)} -t ${secondsToTimestamp(scrubber.endTime)} -c copy ${message.id}-trimmed.mp4`);
+  
+  const { data } = await worker.read(`${message.id}-trimmed.mp4`);
   fs.writeFileSync(`${__dirname}/../video/${message.id}.mp4`,data);
   await worker.terminate();
   alert("Exported!");
