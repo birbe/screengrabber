@@ -1,0 +1,39 @@
+<html>
+  <head>
+    <script>window.$ = window.jQuery = require("jquery");</script>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.7.0/dist/ffmpeg.min.js"></script>
+    <script>
+      require("../js/edit.js");
+    </script>
+    <link type="text/css" href="../css/edit.css" rel="stylesheet"></link>
+  </head>
+  <body>
+    <div id="mount">
+      <div id="titlebar">
+        <div id="titlebar-left">
+          <div id="export-mp4">Export as MP4</div>
+        </div>
+        <div id="titlebar-right">
+          <div class="btn" id="close-btn">
+            <img src="../assets/close-btn.svg"></img>
+          </div>
+          <div class="btn" id="min-btn">
+            <img src="../assets/min-btn.svg"></img>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel horiz" id="preview-panel">
+        <div class="panel vert" id="cropzone">
+          <video src="" id="video-preview">
+            <div id="crop-selection"></div>
+          </video>
+        </div>
+      </div>
+      <div class="panel" id="scrubber-panel"> <!-- trim panel -->
+        <canvas id="scrubber" width="500" height="300">
+        </canvas>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "screengrabber",
+  "version": "1.0.0",
+  "description": "Screengrabber",
+  "main": "index.js",
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.7.0",
+    "electron": "^8.2.0",
+    "jquery": "^3.4.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "author": "Birb",
+  "license": "GPL-3.0-or-later"
+}

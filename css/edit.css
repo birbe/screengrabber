@@ -1,0 +1,174 @@
+@font-face {
+  src: url("../assets/Quicksand-Medium.ttf");
+  font-family: "Quicksand-Medium";
+}
+
+body {
+  margin: 0;
+  padding: 0;
+
+  overflow-y: hidden;
+
+  font-family: "Quicksand-Medium";
+  font-weight: 500;
+}
+
+
+/* #0f89f5 */
+
+#titlebar {
+  -webkit-app-region: drag;
+
+  display: flex;
+  flex-flow: row;
+
+  position: relative;
+
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+
+  background: rgb(17, 17, 17);
+  width: 100vw;
+  height: 30px;
+}
+
+#titlebar-left {
+  display: flex;
+  flex-flow: row;
+
+  height: 100%;
+  width: 50%;
+}
+
+#titlebar-right {
+  display: flex;
+  flex-flow: row-reverse;
+
+  height: 100%;
+  width: 50%;
+}
+
+#export-mp4 {
+  -webkit-app-region: none;
+  display: flex;
+  flex-flow: column;
+
+  justify-content: center;
+
+  color: white;
+  background: #09aded;
+  border-radius: 2px;
+  text-align: center;
+  height: 20px;
+  width: 120px;
+  margin: 5px;
+}
+
+#export-mp4:hover {
+  cursor: pointer;
+}
+
+#mount {
+  display: flex;
+  flex-flow: column;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  background: rgb(29, 29, 29);
+}
+
+.panel {
+  display: flex;
+
+  margin: 0;
+  padding: 0;
+
+  height: 100%;
+  width: 100%;
+
+  border-bottom: 1px solid rgb(17, 17, 17);
+}
+
+.horiz {
+  flex-flow: row;
+}
+
+.horiz > * {
+  border-right: 1px solid rgb(17, 17, 17);
+}
+
+.vert {
+  flex-flow: column;
+}
+
+.btn {
+  display: flex;
+  flex-flow: column;
+  justify-content: center;
+
+  width: 50px;
+  height: 30px;
+
+  transition: all 0.05s ease-out;
+
+  -webkit-app-region: none;
+}
+
+.btn:hover {
+  cursor: pointer;
+  background: rgb(37, 37, 37);
+}
+
+.btn > img {
+  width: 50%;
+
+  margin: auto;
+  padding: 0;
+}
+
+#close-btn:hover {
+  background: rgb(190, 52, 52);
+}
+
+#cropzone {
+  justify-content: center;
+}
+
+#video-preview {
+  transition: all 0.1s ease-in-out;
+
+  height: 50vh;
+  margin: auto;
+  padding: 0;
+
+  border-radius: 5px;
+}
+
+#video-preview:hover {
+  cursor: pointer;
+}
+
+#scrubber-panel {
+  background: rgb(15, 15, 15);
+
+  width: 100vw;
+  height: calc(40vh - 30px);
+}
+
+#scrubber {
+  width: 100%;
+  height: calc(40vh - 30px);
+}
+
+#preview-panel {
+  height: 60vh;
+}
