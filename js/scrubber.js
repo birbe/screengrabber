@@ -1,6 +1,17 @@
 const margin = 60;
 const BLUE = "#0f89f5";
 
+function secondsToTimestamp(seconds) {
+  let h = Math.floor(seconds/3600 % 60).toString();
+  h = h.length==1?`0${h}`:h;
+  let m = Math.floor(seconds/60 % 60).toString();
+  m = m.length==1?`0${m}`:m;
+  let s = Math.floor(seconds % 60).toString();
+  s = s.length==1?`0${s}`:s;
+  let ms = ((seconds%1)).toFixed(2).split(".")[1];
+  return `${h}:${m}:${s}.${ms}`;
+}
+
 function calculateTimelinePos(s,time) {
   return (time/s.length)*(s.width-(margin*2))+margin;
 }
@@ -224,15 +235,18 @@ class Scrubber {
     this.context.font = "30px Quicksand-Medium";
 
     this.context.fillStyle = BLUE;
-    this.context.fillText(`${this.currentTime.toFixed(2)}s`,20,40);
+    this.context.fillText(secondsToTimestamp(this.currentTime),20,40);
 
     this.context.fillStyle = "#fff";
-    this.context.fillText(`${(this.endTime-this.beginTime).toFixed(2)}s`,150,40);
+    this.context.fillText(secondsToTimestamp(this.endTime-this.beginTime),250,40);
 
     if(this.trimming) {
       let time = this.draggingTrim1 ? this.beginTime : this.endTime;
+      let x = calculateTimelinePos(this,time)+this.tWidth+5;
+      let str = secondsToTimestamp(time);
+      x = Math.min(timelineWidth+margin-this.context.measureText(str).width,x);
       this.context.fillStyle = "#f2a427";
-      this.context.fillText(`${time.toFixed(2)}s`,calculateTimelinePos(this,time)+this.tWidth+5,margin+this.tHeight/2);
+      this.context.fillText(str,x,margin+this.tHeight/2);
     }
 
   }

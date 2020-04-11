@@ -8,11 +8,12 @@ if(!fs.existsSync("./video")) {
 }
 
 function secondsToTimestamp(seconds) {
-  let h = Math.floor(seconds/3600 % 60);
+  let h = Math.floor(seconds/3600 % 60).toString();
   h = h.length==1?`0${h}`:h;
-  let m = Math.floor(seconds/60 % 60);
-  m = m.length==1?`0${m}`:h;
-  let s = Math.floor(seconds % 60);
+  let m = Math.floor(seconds/60 % 60).toString();
+  m = m.length==1?`0${m}`:m;
+  let s = Math.floor(seconds % 60).toString();
+  s = s.length==1?`0${s}`:s;
   let ms = ((seconds%1)).toFixed(4).split(".")[1];
   return `${h}:${m}:${s}.${ms}`;
 }
