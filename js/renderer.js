@@ -7,12 +7,17 @@ const crypto = require("crypto");
 let recording = false;
 let state;
 
-function record(x,y,width,height) {
+/*
 
-  x = x || 0;
-  y = y || 0;
-  width = width || 1920;
-  height = height || 1080;
+  This code is fairly messy and I need to clean it up, but here's how it works:
+
+  Record button is clicked (jQuery), then record() is called which gets a MediaStream from one of your screens.
+  It creates a StreamState wrapper class which is then called as the MediaRecorder (created inside the class)
+  stops/starts, which then creates the editing window.
+
+*/
+
+function record(crop) {
 
   return new Promise((res,rej)=>{
 
@@ -33,7 +38,8 @@ function record(x,y,width,height) {
           }
         });
 
-        let state = handleStream(stream);
+        console.log(crop || {x:0,y:0,width:1920,height:1080});
+        let state = handleStream(stream,crop || {x:0,y:0,width:1920,height:1080});
         recording = true;
         res(state);
 
@@ -44,10 +50,11 @@ function record(x,y,width,height) {
   });
 }
 
-ipcRenderer.on("crop-size",async (event,message)=>{
-  let size = JSON.parse(message);
-  state = await record();
+ipcRenderer.on("crop-size",async (event,size)=>{
+  state = await record(size);
+  state.start();
 
+  updateRecButton();
 });
 
 function getVideoID() {
@@ -72,13 +79,17 @@ function getCropSelection() {
   cropWindow.webContents.once("dom-ready",()=>cropWindow.webContents.send("do-crop",""));
 }
 
+function updateRecButton() {
+  let src = recording ? "../assets/stop.svg" : "../assets/dot.svg";
+  $("#record-btn").attr("src",src);
+}
+
 $("#record").click(async ()=>{
 
   recording = !recording;
+  updateRecButton();
 
-  remote.getCurrentWindow().minimize();
-
-  let src = recording ? "../assets/stop.svg" : "../assets/dot.svg";
+  //remote.getCurrentWindow().minimize();
 
   if(!recording) { //not recording anymore
     state.stop();
@@ -86,8 +97,6 @@ $("#record").click(async ()=>{
     state = await record();
     state.start();
   }
-
-  $("#record-btn").attr("src",src);
 });
 
 $("#crop").click(()=>{
@@ -113,14 +122,16 @@ function createEditingWindow(info) {
     },
     frame: false,
   });
+
   editingWindow.loadURL(`file://${__dirname}/../html/edit.html`);
+
   editingWindow.webContents.once("dom-ready",()=>{
-    editingWindow.webContents.send("vid-src",info)
+    editingWindow.webContents.send("vid-src",info);
   });
 }
 
 class StreamState {
-  constructor(stream) {
+  constructor(stream,crop) {
     this.stream = stream;
     this.recorder = new MediaRecorder(stream,{
       videoBitsPerSecond: 12*1000*1000,
@@ -134,6 +145,7 @@ class StreamState {
     this.recorder.onstop = ()=>{
       this.stopTime = Date.now();
     }
+    this.crop = crop;
   }
 
   start() {
@@ -154,7 +166,7 @@ class StreamState {
       fileReader.onload = function() {
         let buf = Buffer.from(new Uint8Array(this.result));
         fs.writeFileSync(`./video/${file}`, buf);
-        createEditingWindow({id,file,duration:$this.stopTime-$this.startTime});
+        createEditingWindow({id,file,duration:$this.stopTime-$this.startTime,crop:$this.crop});
       }
       fileReader.readAsArrayBuffer(bigblob);
     }
@@ -181,8 +193,8 @@ function toBuffer(ab) {
     return buffer;
 }
 
-function handleStream(stream) {
-  return new StreamState(stream);
+function handleStream(stream,crop) {
+  return new StreamState(stream,crop);
 
   // const video = document.querySelector("video");
   // video.srcObject = stream;

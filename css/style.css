@@ -3,23 +3,14 @@ body {
 
   padding: 0;
   margin: 0;
+
+  -webkit-app-region: drag;
+
+  overflow-y: hidden;
 }
 
 video {
   height: 30vh;
-}
-
-#dragger {
-  -webkit-app-region: drag;
-
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 10px;
-  height: 10px;
-  margin: 0;
-  padding: 0;
-  background: black;
 }
 
 #button-holder {
@@ -34,6 +25,7 @@ video {
 }
 
 .button {
+  -webkit-app-region: none;
   transition: all ease-in-out 0.1s;
 
   border-radius: 5px;

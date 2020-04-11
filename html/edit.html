@@ -3,6 +3,7 @@
     <script>window.$ = window.jQuery = require("jquery");</script>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.7.0/dist/ffmpeg.min.js"></script>
     <script>
+      console.log("why the FUCK doesn't this work?");
       require("../js/edit.js");
     </script>
     <link type="text/css" href="../css/edit.css" rel="stylesheet"></link>
@@ -25,9 +26,15 @@
 
       <div class="panel horiz" id="preview-panel">
         <div class="panel vert" id="cropzone">
-          <video src="" id="video-preview">
-            <div id="crop-selection"></div>
-          </video>
+          <div id="video-preview-container">
+            <video src="" id="video-preview">
+            </video>
+            
+            <div class="crop" id="left"></div>
+            <div class="crop" id="right"></div>
+            <div class="crop" id="top"></div>
+            <div class="crop" id="bottom"></div>
+          </div>
         </div>
       </div>
       <div class="panel" id="scrubber-panel"> <!-- trim panel -->

@@ -24,7 +24,7 @@ $("body").on("mouseup",e=>{ //We done
   let maxY = Math.max(y1,y2);
 
   if(e.pageX != x1 && e.pageY != y1) {
-    mainWindow.webContents.send("crop-size",JSON.stringify({x:minX,y:minY,width:maxX-minX,height:maxY-minY}));
+    mainWindow.webContents.send("crop-size",{x:minX,y:minY,width:maxX-minX,height:maxY-minY});
   } else {
     mainWindow.webContents.send("crop-failed");
   }

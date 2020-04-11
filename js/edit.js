@@ -3,11 +3,11 @@ const mainWindow = remote.getGlobal("mainWindow");
 const { createWorker } = FFmpeg;
 const fs = require("fs");
 
-const Scrubber = require("./scrubber.js");
+console.log("UHYUHUHUUHH");
+
 
 ipcRenderer.on("vid-src",(event,message)=>{
-
-  console.log(message);
+const Scrubber = require("./scrubber.js");
 
 $("#video-preview").attr("src",`${__dirname}/../video/${message.file}`);
 
@@ -29,11 +29,41 @@ function updateScreenSize() {
   scrub_ctx.canvas.height = height;
 }
 
+function updateCropRegion() {
+  let rect = $("#video-preview")[0].getBoundingClientRect();
+  let wScale = rect.width/1920;
+  let hScale = rect.height/1080;
+  let crop = message.crop;
+
+  $("#left").css("left",`${rect.x}px`);
+  $("#left").css("top",`${rect.y}px`);
+  $("#left").css("width",`${crop.x*wScale}`);
+  $("#left").css("height",`${rect.height}px`);
+
+  $("#top").css("left",`${rect.x+crop.x*wScale}px`);
+  $("#top").css("top",`${rect.y}px`);
+  $("#top").css("width",`${crop.width*wScale}px`);
+  $("#top").css("height",`${crop.y*hScale}px`);
+
+  $("#bottom").css("left",`${rect.x+crop.x*wScale}px`);
+  $("#bottom").css("top",`${rect.y+crop.height*hScale}px`);
+  $("#bottom").css("width",`${crop.width*wScale}px`);
+  $("#bottom").css("height",`${rect.height-crop.height*hScale}px`);
+
+  $("#right").css("left",`${rect.x+((crop.width+crop.x)*wScale)}px`);
+  $("#right").css("top",`${rect.y}px`);
+  $("#right").css("width",`${rect.width-((crop.width+crop.x)*wScale)}px`);
+  $("#right").css("height",`${rect.height}px`);
+}
+
+updateCropRegion();
+
 $(window).resize(()=>{
-  updateScreenSize()
+  updateScreenSize();
 });
 
 setInterval(()=>scrubber.render(),1000/100);
+setInterval(()=>updateCropRegion(),1000/10);
 
 updateScreenSize();
 
@@ -42,16 +72,6 @@ let mousedownScrubber = false;
 
 let x1;
 let y1;
-
-function secondsToTimestamp(seconds) {
-  let h = Math.floor(seconds/3600 % 60);
-  h = h.length==1?`0${h}`:h;
-  let m = Math.floor(seconds/60 % 60);
-  m = m.length==1?`0${m}`:h;
-  let s = Math.floor(seconds % 60);
-  let ms = ((seconds%1)).toFixed(4).split(".")[1];
-  return `${h}:${m}:${s}.${ms}`;
-}
 
 $("#scrubber").mousedown(e=>{
   mousedownScrubber = true;
@@ -91,17 +111,14 @@ $("#min-btn").click(()=>{
 });
 
 $("#export-mp4").click(async ()=>{
-  const worker = createWorker();
-
-  await worker.load();
-  await worker.write(`${message.file}`,`../video/${message.file}`);
-  await worker.run(`-i ${message.file} -codec copy ${message.id}.mp4`);
-  await worker.run(`-i ${message.id}.mp4 -ss ${secondsToTimestamp(scrubber.beginTime)} -t ${secondsToTimestamp(scrubber.endTime)} -c copy ${message.id}-trimmed.mp4`);
-  
-  const { data } = await worker.read(`${message.id}-trimmed.mp4`);
-  fs.writeFileSync(`${__dirname}/../video/${message.id}.mp4`,data);
-  await worker.terminate();
-  alert("Exported!");
+  ipcRenderer.invoke("ffmpeg:job",{
+    ...message,
+    scrubber: {
+      begin: scrubber.beginTime,
+      end: scrubber.endTime
+    }
+  })
+    .then(e=>alert(e)).catch(()=>{});
 });
 
 });

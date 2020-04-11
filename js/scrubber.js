@@ -109,6 +109,7 @@ class Scrubber {
     this.draggingTrim2 = false;
 
     this.video = video;
+    this.dragOffset = 0;
   }
 
   setTime(time) {
@@ -130,8 +131,14 @@ class Scrubber {
     let trimPos1 = calculateTimelinePos(this,this.beginTime);
     let trimPos2 = calculateTimelinePos(this,this.endTime);
 
-    this.draggingTrim1 = x >= trimPos1-this.tWidth && x <= trimPos1 + this.tWidth && y >= margin && y <= margin+this.tHeight;
+    this.draggingTrim1 = x >= trimPos1-this.tWidth && x <= trimPos1 && y >= margin && y <= margin+this.tHeight;
     this.draggingTrim2 = x >= trimPos2 && x <= trimPos2 + this.tWidth && y >= margin && y <= margin+this.tHeight;
+
+    if(this.draggingTrim1) {
+      this.dragOffset = trimPos1-x;
+    } else if(this.draggingTrim2) {
+      this.dragOffset = trimPos2-x;
+    }
   }
 
   onMouseup(x,y) {
@@ -146,11 +153,11 @@ class Scrubber {
       this.onUserScrubbed(this.currentTime);
     }
     if(this.draggingTrim1) {
-      this.beginTime = clamp(calculateTimelinePosFromX(this,x2),0,this.endTime);
+      this.beginTime = clamp(calculateTimelinePosFromX(this,x2+this.dragOffset),0,this.endTime);
       this.currentTime = clamp(this.currentTime,this.beginTime,this.endTime);
       this.onUserScrubbed(this.currentTime);
     } else if(this.draggingTrim2) {
-      this.endTime = clamp(calculateTimelinePosFromX(this,x2),this.beginTime,this.length);
+      this.endTime = clamp(calculateTimelinePosFromX(this,x2+this.dragOffset),this.beginTime,this.length);
       this.currentTime = clamp(this.currentTime,this.beginTime,this.endTime);
       this.onUserScrubbed(this.currentTime);
     }
@@ -197,7 +204,14 @@ class Scrubber {
     this.context.drawImage(this.video,margin/horizScale,margin/vertScale);
     this.context.filter = "none";
 
+
     this.context.setTransform(1, 0, 0, 1, 0, 0); //Reset transformation matrix
+
+    this.context.beginPath();
+    this.context.fillStyle = "rgba(0, 0, 0, 0.7)";
+    this.context.rect(margin,margin,calculateTimelinePos(this.beginTime)-margin,timelineHeight);
+    this.context.rect(margin+calculateTimelinePos(this.endTime),margin,timelineWidth-calculateTimelinePos(this.beginTime)-margin,timelineHeight);
+    this.context.fill();
 
     this.context.restore(); //Restore the unclipped state
 
