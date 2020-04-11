@@ -32,7 +32,7 @@ ipcMain.handle("ffmpeg:job",async (event, message)=>{
 
   await worker.load();
   await worker.write(`${message.file}`,`./video/${message.file}`);
-  await worker.run(`-i ${message.file} -filter:video crop=${cropW}:${cropH}:${cropX}:${cropY} -threads 5 -preset ultrafast -strict -2 ${message.id}-final.mp4`);
+  await worker.run(`-i ${message.file} -ss ${secondsToTimestamp(message.scrubber.begin)} -t ${secondsToTimestamp(message.scrubber.end)} -filter:video crop=${cropW}:${cropH}:${cropX}:${cropY} -threads 5 -preset ultrafast -strict -2 ${message.id}-final.mp4`);
   //await worker.run(`-i ${message.file} -codec copy ${message.id}.mp4`);
   //await worker.run(`-i ${message.id}.mp4 -filter:v "crop=100:100:100:100" -codec copy ${message.id}-cropped.mp4`);
   //await worker.run(`-i ${message.file} -filter:v "crop=${cropW}:${cropH}:${cropX}:${cropY}" -ss ${secondsToTimestamp(message.scrubber.begin)} -t ${secondsToTimestamp(message.scrubber.end)} ${message.id}-final.mp4`);
