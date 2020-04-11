@@ -178,6 +178,21 @@ $("#scrubber").mousedown(e=>{
   });
 })();
 
+function saveVideo(ext) {
+  ipcRenderer.invoke("ffmpeg:job",{
+    ...message,
+    scrubber: {
+      begin: scrubber.beginTime,
+      end: scrubber.endTime
+    },
+    type: ext,
+    width: message.width,
+    height: message.height
+  })
+  .then(e=>{
+    alert("Exported");
+  }).catch(()=>{});
+}
 
 $("#close-btn").click(()=>{
   remote.getCurrentWindow().close();
@@ -187,17 +202,13 @@ $("#min-btn").click(()=>{
   remote.getCurrentWindow().minimize();
 });
 
-$("#export-btn").click(async ()=>{
-  ipcRenderer.invoke("ffmpeg:job",{
-    ...message,
-    scrubber: {
-      begin: scrubber.beginTime,
-      end: scrubber.endTime
-    }
-  })
-  .then(e=>{
-    alert("Exported");
-  }).catch(()=>{});
+$(".mp4").click(async ()=>{
+  console.log("mp4");
+  saveVideo("mp4");
+});
+
+$(".gif").click(async ()=>{
+  saveVideo("gif");
 });
 
 $(window).resize(()=>{

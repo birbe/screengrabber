@@ -31,19 +31,19 @@ ipcMain.handle("ffmpeg:job",async (event, message)=>{
     logger: ({message})=>console.log(message)
   });
 
+  let cropStr = cropW == message.width && cropH == message.height ? `` : `-filter:video crop=${cropW}:${cropH}:${cropX}:${cropY}`;
+  console.log(cropW);
+  console.log(cropH);
+
   await worker.load();
   await worker.write(`${message.file}`,`./video/${message.file}`);
-  await worker.run(`-i ${message.file} -ss ${secondsToTimestamp(message.scrubber.begin)} -t ${secondsToTimestamp(message.scrubber.end)} -filter:video crop=${cropW}:${cropH}:${cropX}:${cropY} -threads 5 -preset ultrafast -strict -2 ${message.id}-final.mp4`);
-  //await worker.run(`-i ${message.file} -codec copy ${message.id}.mp4`);
-  //await worker.run(`-i ${message.id}.mp4 -filter:v "crop=100:100:100:100" -codec copy ${message.id}-cropped.mp4`);
-  //await worker.run(`-i ${message.file} -filter:v "crop=${cropW}:${cropH}:${cropX}:${cropY}" -ss ${secondsToTimestamp(message.scrubber.begin)} -t ${secondsToTimestamp(message.scrubber.end)} ${message.id}-final.mp4`);
+  await worker.run(`-i ${message.file} -ss ${secondsToTimestamp(message.scrubber.begin)} -t ${secondsToTimestamp(message.scrubber.end)} ${cropStr} -threads 5 -preset ultrafast -strict -2 ${message.id}-final.${message.type}`);
 
-  const { data } = await worker.read(`${message.id}-final.mp4`);
-  fs.writeFileSync(`${__dirname}/./video/${message.id}.mp4`,data);
-  console.log(`${__dirname}/./video/${message.id}.mp4`);
+  const { data } = await worker.read(`${message.id}-final.${message.type}`);
+  fs.writeFileSync(`${__dirname}/./video/${message.id}.${message.type}`,data);
   await worker.terminate();
 
-  return `${__dirname}/./video/${message.id}.mp4`;
+  return `${__dirname}/./video/${message.id}.${message.type}`;
 });
 
 function createWindow() {

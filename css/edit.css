@@ -50,20 +50,17 @@ body {
   width: 50%;
 }
 
-#export-btn {
-  -webkit-app-region: none;
+.title-bar-text {
   display: flex;
   flex-flow: column;
 
   justify-content: center;
 
   color: white;
-  background: #0f89f5;
-  border-radius: 2px;
   text-align: center;
   height: 20px;
   width: 120px;
-  margin: 5px;
+  margin-top: 5px;
 }
 
 #export-btn:hover {
@@ -204,4 +201,30 @@ body {
   width: 20px;
   height: 20px;
   background: #0f89f5;
+}
+
+#export-panel {
+  flex-flow: column;
+  justify-content: center;
+}
+
+.export-type {
+  margin: auto;
+
+  width: 10vw;
+  height: 12vw;
+
+  fill: #0f89f5;
+}
+
+.export-type:hover {
+  cursor: pointer;
+}
+
+.mp4 {
+  background-image: url("../assets/mp4.svg");
+}
+
+.gif {
+  background-image: url("../assets/gif.svg");
 }
