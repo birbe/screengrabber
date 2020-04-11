@@ -2,6 +2,10 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const { createWorker } = require("@ffmpeg/ffmpeg");
 const fs = require("fs");
 
+if(!fs.existsSync("./video")) {
+  fs.mkdirSync("./video");
+}
+
 function secondsToTimestamp(seconds) {
   let h = Math.floor(seconds/3600 % 60);
   h = h.length==1?`0${h}`:h;
