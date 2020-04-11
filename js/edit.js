@@ -1,7 +1,9 @@
 const { remote, ipcRenderer } = require("electron");
 const mainWindow = remote.getGlobal("mainWindow");
 const { createWorker } = FFmpeg;
+const path = require("path");
 const fs = require("fs");
+const shell = remote.shell;
 
 console.log("UHYUHUHUUHH");
 
@@ -118,7 +120,9 @@ $("#export-mp4").click(async ()=>{
       end: scrubber.endTime
     }
   })
-    .then(e=>alert(e)).catch(()=>{});
+  .then(e=>{
+    alert("Exported");
+  }).catch(()=>{});
 });
 
 });

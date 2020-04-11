@@ -31,7 +31,7 @@ ipcMain.handle("ffmpeg:job",async (event, message)=>{
   await worker.write(`${message.file}`,`./video/${message.file}`);
   await worker.run(`-i ${message.file} -codec copy ${message.id}.mp4`);
   //await worker.run(`-i ${message.id}.mp4 -filter:v "crop=100:100:100:100" -codec copy ${message.id}-cropped.mp4`);
-  await worker.run(`-i ${message.id}-cropped.mp4 -ss ${secondsToTimestamp(message.scrubber.begin)} -t ${secondsToTimestamp(message.scrubber.end)} -c copy ${message.id}-final.mp4`);
+  await worker.run(`-i ${message.id}.mp4 -ss ${secondsToTimestamp(message.scrubber.begin)} -t ${secondsToTimestamp(message.scrubber.end)} -c copy ${message.id}-final.mp4`);
 
   const { data } = await worker.read(`${message.id}-final.mp4`);
   fs.writeFileSync(`${__dirname}/./video/${message.id}.mp4`,data);
