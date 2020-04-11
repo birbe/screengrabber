@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
 const { createWorker } = require("@ffmpeg/ffmpeg");
 const fs = require("fs");
 
@@ -43,14 +43,14 @@ ipcMain.handle("ffmpeg:job",async (event, message)=>{
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 500,
+    width: 300,
     height: 70,
     webPreferences: {
       nodeIntegration: true
     },
     frame: false,
     transparent: true,
-    resizable: false
+    //resizable: false
   });
   //mainWindow.show();
 
@@ -58,6 +58,9 @@ function createWindow() {
   //mainWindow.setResizable(false);
 
   global.mainWindow = mainWindow;
+  globalShortcut.register("Super+Shift+D",()=>{
+    mainWindow.webContents.send("do-crop","");
+  });
 }
 
-app.whenReady().then(setTimeout(createWindow,1000));
+app.whenReady().then(()=>setTimeout(createWindow,1000));

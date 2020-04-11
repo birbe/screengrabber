@@ -1,4 +1,5 @@
 const margin = 60;
+const BLUE = "#0f89f5";
 
 function calculateTimelinePos(s,time) {
   return (time/s.length)*(s.width-(margin*2))+margin;
@@ -17,8 +18,8 @@ function drawPlaybackHead(s) {
 
   let x = calcPlaybackHeadX(s);
 
-  ctx.fillStyle = "#30b7f2";
-  ctx.strokeStyle = "#30b7f2";
+  ctx.fillStyle = BLUE;
+  ctx.strokeStyle = BLUE;
   ctx.beginPath();
   ctx.moveTo(x-20,margin-20);
   ctx.lineTo(x+20,margin-20);
@@ -222,7 +223,7 @@ class Scrubber {
 
     this.context.font = "30px Quicksand-Medium";
 
-    this.context.fillStyle = "#30b7f2";
+    this.context.fillStyle = BLUE;
     this.context.fillText(`${this.currentTime.toFixed(2)}s`,20,40);
 
     this.context.fillStyle = "#fff";

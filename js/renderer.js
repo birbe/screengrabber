@@ -17,12 +17,36 @@ let state;
 
 */
 
+function getScreenDimensions(id) {
+  return remote.screen.getAllDisplays().find(s=>s.id==id).size;
+}
+
+function selectScreen() {
+  let displays = remote.screen.getAllDisplays();
+  let windows = [];
+  // for(displays.length) {
+  //   let window = windows.push(new BrowserWindow({
+  //     width: displays[i].size.width,
+  //     height: displays[i].size.height.
+  //     x: displays[i].bounds.x,
+  //     y: displays[i].bounds.y
+  //   }));
+  //   window.loadURL();
+  //   ipcRenderer.once("screen:select",(event,message)=>{
+  //
+  //   });
+  // }
+}
+
 function record(crop) {
 
   return new Promise((res,rej)=>{
 
     desktopCapturer.getSources({types:["screen"]}).then(async sources=>{
       const source = sources[0];
+      let displaySize = getScreenDimensions(source.display_id);
+      console.log(displaySize);
+
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
@@ -30,16 +54,22 @@ function record(crop) {
             mandatory: {
               chromeMediaSource: "desktop",
               chromeMediaSourceId: source.id,
-              minWidth: 1920,
-              maxWidth: 1920,
-              minHeight: 1080,
-              maxHeight: 1080
+              minWidth: displaySize.width,
+              maxWidth: displaySize.width,
+              minHeight: displaySize.height,
+              maxHeight: displaySize.height
             }
           }
         });
 
-        console.log(crop || {x:0,y:0,width:1920,height:1080});
-        let state = handleStream(stream,crop || {x:0,y:0,width:1920,height:1080});
+        let state = handleStream(stream,{
+          crop:crop||{
+            x:0,y:0,
+            ...displaySize
+          },
+          width:displaySize.width,
+          height:displaySize.height
+        });
         recording = true;
         res(state);
 
@@ -49,13 +79,6 @@ function record(crop) {
     });
   });
 }
-
-ipcRenderer.on("crop-size",async (event,size)=>{
-  state = await record(size);
-  state.start();
-
-  updateRecButton();
-});
 
 function getVideoID() {
   return crypto.createHash("sha256").update(Date.now().toString()).digest("hex").substr(0,8);
@@ -80,13 +103,24 @@ function getCropSelection() {
 }
 
 function updateRecButton() {
-  let src = recording ? "../assets/stop.svg" : "../assets/dot.svg";
-  $("#record-btn").attr("src",src);
+  if(recording) {
+    $("#stop-record").css("opacity","1");
+    $("#stop-record").attr("disabled","false");
+
+    $("#screen").css("opacity","0.4");
+    $("#crop").css("opacity","0.4");
+  } else {
+    $("#stop-record").css("opacity","0.4");
+    $("#stop-record").attr("disabled","true");
+
+    $("#screen").css("opacity","1");
+    $("#crop").css("opacity","1");
+  }
 }
 
-$("#record").click(async ()=>{
 
-  recording = !recording;
+async function beginRecording() {
+  recording = true;
   updateRecButton();
 
   //remote.getCurrentWindow().minimize();
@@ -97,11 +131,7 @@ $("#record").click(async ()=>{
     state = await record();
     state.start();
   }
-});
-
-$("#crop").click(()=>{
-  getCropSelection();
-});
+}
 
 function createPreviewWindow() {
   let previewWindow = new remote.BrowserWindow({
@@ -131,30 +161,41 @@ function createEditingWindow(info) {
 }
 
 class StreamState {
-  constructor(stream,crop) {
+  constructor(stream,data) {
     this.stream = stream;
     this.recorder = new MediaRecorder(stream,{
-      videoBitsPerSecond: 12*1000*1000,
+      videoBitsPerSecond: 6*1000*1000,
       mimeType: "video/x-matroska"
     });
     this.startTime = 0;
     this.stopTime = 0;
+
     this.recorder.onstart = ()=>{
       this.startTime = Date.now();
     }
     this.recorder.onstop = ()=>{
       this.stopTime = Date.now();
     }
-    this.crop = crop;
+
+    this.crop = data.crop;
+    this.width = data.width;
+    this.height = data.height;
+    console.log(this);
+    this.active = false;
   }
 
   start() {
     this.blobs = [];
 
     this.recorder.start();
+    remote.getCurrentWindow().setAlwaysOnTop(true);
+
+    this.active = true;
   }
 
   stop() {
+    this.active = false;
+
     this.recorder.ondataavailable = event=>{
       this.blobs.push(event.data);
 
@@ -166,12 +207,12 @@ class StreamState {
       fileReader.onload = function() {
         let buf = Buffer.from(new Uint8Array(this.result));
         fs.writeFileSync(`./video/${file}`, buf);
-        createEditingWindow({id,file,duration:$this.stopTime-$this.startTime,crop:$this.crop});
+        createEditingWindow({id,file,duration:$this.stopTime-$this.startTime,crop:$this.crop,width:$this.width,height:$this.height});
       }
       fileReader.readAsArrayBuffer(bigblob);
     }
     this.recorder.stop();
-
+    remote.getCurrentWindow().setAlwaysOnTop(false);
   }
 }
 
@@ -200,5 +241,35 @@ function handleStream(stream,crop) {
   // video.srcObject = stream;
   // video.onloadedmetadata = (e) => video.play();
 }
+
+ipcRenderer.on("docrop",()=>{
+  getCropSelection();
+});
+
+ipcRenderer.on("crop-size",async (event,size)=>{
+  console.log(size);
+  state = await record(size);
+  state.start();
+
+  updateRecButton();
+});
+
+$("#screen").click(async ()=>{
+  if(!recording) beginRecording();
+});
+
+$("#stop-record").click(()=>{
+  if(recording) {
+    state.stop();
+    recording = false;
+  }
+  updateRecButton();
+});
+
+$("#crop").click(()=>{
+  if(!recording) getCropSelection();
+});
+
+updateRecButton();
 
 });

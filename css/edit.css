@@ -50,7 +50,7 @@ body {
   width: 50%;
 }
 
-#export-mp4 {
+#export-btn {
   -webkit-app-region: none;
   display: flex;
   flex-flow: column;
@@ -58,7 +58,7 @@ body {
   justify-content: center;
 
   color: white;
-  background: #09aded;
+  background: #0f89f5;
   border-radius: 2px;
   text-align: center;
   height: 20px;
@@ -66,7 +66,7 @@ body {
   margin: 5px;
 }
 
-#export-mp4:hover {
+#export-btn:hover {
   cursor: pointer;
 }
 
@@ -188,10 +188,20 @@ body {
 }
 
 #crop-selection {
-  position: relative;
-
+  position: fixed;
   z-index: 2;
-  width: 50%;
-  height: 50%;
-  border: solid 1px white;
+
+  border: 1px solid #0f89f5;
+  margin: 0;
+  padding: 0;
+}
+
+.crop-corner {
+  position: fixed;
+
+  z-index: 3;
+
+  width: 20px;
+  height: 20px;
+  background: #0f89f5;
 }

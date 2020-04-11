@@ -6,6 +6,7 @@ body {
 
   -webkit-app-region: drag;
 
+  overflow-x: hidden;
   overflow-y: hidden;
 }
 
@@ -44,14 +45,8 @@ video {
   cursor: pointer;
 }
 
-.record-symbol {
-  margin: auto;
-  background: #f23d3d;
-
-  border-radius: 100%;
-
-  width: 25px;
-  height: 25px;
+#stop-record {
+  background-image: url("../assets/stop.svg");
 }
 
 #vidsrc {

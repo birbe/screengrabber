@@ -5,13 +5,12 @@ const path = require("path");
 const fs = require("fs");
 const shell = remote.shell;
 
-console.log("UHYUHUHUUHH");
-
-
 ipcRenderer.on("vid-src",(event,message)=>{
 const Scrubber = require("./scrubber.js");
 
 $("#video-preview").attr("src",`${__dirname}/../video/${message.file}`);
+
+console.log(message);
 
 let scrub_ctx = $("#scrubber")[0].getContext("2d");
 let video = $("#video-preview")[0];
@@ -33,8 +32,8 @@ function updateScreenSize() {
 
 function updateCropRegion() {
   let rect = $("#video-preview")[0].getBoundingClientRect();
-  let wScale = rect.width/1920;
-  let hScale = rect.height/1080;
+  let wScale = rect.width/message.width;
+  let hScale = rect.height/message.height;
   let crop = message.crop;
 
   $("#left").css("left",`${rect.x}px`);
@@ -48,26 +47,31 @@ function updateCropRegion() {
   $("#top").css("height",`${crop.y*hScale}px`);
 
   $("#bottom").css("left",`${rect.x+crop.x*wScale}px`);
-  $("#bottom").css("top",`${rect.y+crop.height*hScale}px`);
+  $("#bottom").css("top",`${rect.y+(crop.height+crop.y)*hScale}px`);
   $("#bottom").css("width",`${crop.width*wScale}px`);
-  $("#bottom").css("height",`${rect.height-crop.height*hScale}px`);
+  $("#bottom").css("height",`${rect.height-((crop.height+crop.y)*hScale)}px`);
 
   $("#right").css("left",`${rect.x+((crop.width+crop.x)*wScale)}px`);
   $("#right").css("top",`${rect.y}px`);
   $("#right").css("width",`${rect.width-((crop.width+crop.x)*wScale)}px`);
   $("#right").css("height",`${rect.height}px`);
+
+  $("#crop-selection").css("left",`${rect.x+crop.x*wScale}px`);
+  $("#crop-selection").css("top",`${rect.y+crop.y*hScale}px`);
+  $("#crop-selection").css("width",`${crop.width*wScale}px`);
+  $("#crop-selection").css("height",`${crop.height*hScale}px`);
+
+  $("#crop-top-left").css("top",`${rect.y+crop.y*hScale-20}px`);
+  $("#crop-top-left").css("left",`${rect.x+crop.x*wScale-20}px`);
+
+  $("#crop-bottom-right").css("top",`${rect.y+(crop.y+crop.height)*hScale+1}px`);
+  $("#crop-bottom-right").css("left",`${rect.x+(crop.x+crop.width)*wScale+1}px`);
 }
 
-updateCropRegion();
+function clamp(num,min,max) {
+  return Math.max(min,Math.min(num,max));
+}
 
-$(window).resize(()=>{
-  updateScreenSize();
-});
-
-setInterval(()=>scrubber.render(),1000/100);
-setInterval(()=>updateCropRegion(),1000/10);
-
-updateScreenSize();
 
 let draggingScrubber = false;
 let mousedownScrubber = false;
@@ -104,6 +108,77 @@ $("#scrubber").mousedown(e=>{
   mousedownScrubber = false;
 });
 
+(function() { //Keep the scope clean
+  let offsetX = 0;
+  let offsetY = 0;
+  let draggingTL = false; //Top left
+  let draggingBR = false; //Bottom right
+  let dragging = false;
+
+  $("#crop-top-left").mousedown(e=>{
+    dragging = true;
+    draggingTL = true;
+    draggingBR = false;
+
+    let rect = $("#crop-top-left")[0].getBoundingClientRect();
+    offsetX = e.pageX-rect.x;
+    offsetY = e.pageY-rect.y;
+  });
+
+  $("#crop-bottom-right").mousedown(e=>{
+    dragging = true;
+    draggingBR = true;
+    draggingTL = false;
+
+    let rect = $("#crop-bottom-right")[0].getBoundingClientRect();
+    offsetX = rect.x-e.pageX;
+    offsetY = rect.y-e.pageY;
+  });
+
+  $(document).on("mousemove",e=>{
+    let rect = $("#video-preview")[0].getBoundingClientRect();
+    let crop = message.crop;
+
+    let relX = e.pageX+offsetX-rect.x; //Relative x & y coords, adjusted to the video frame
+    let relY = e.pageY+offsetY-rect.y;
+
+    let wScale = rect.width/message.width;
+    let hScale = rect.height/message.height;
+
+    let cropX = relX / wScale;
+    let cropY = relY / hScale;
+
+    let x1 = crop.x;
+    let y1 = crop.y;
+    let x2 = crop.x+crop.width;
+    let y2 = crop.y+crop.height;
+
+    if(dragging) {
+      if(draggingTL) {
+        x1 = clamp(cropX-offsetX,0,x2-1);
+        y1 = clamp(cropY-offsetY,0,y2-1);
+      } else if(draggingBR) {
+        x2 = clamp(cropX-offsetX,x1+1,message.width);
+        y2 = clamp(cropY-offsetY,y1+1,message.height);
+      }
+    }
+
+    crop.x = x1;
+    crop.y = y1;
+    crop.width = x2-x1;
+    crop.height = y2-y1;
+
+    updateCropRegion();
+  });
+
+  $(document).on("mouseup",e=>{
+    dragging = false;
+    draggingBR = false;
+    draggingTR = false;
+  });
+})();
+
+
 $("#close-btn").click(()=>{
   remote.getCurrentWindow().close();
 });
@@ -112,7 +187,7 @@ $("#min-btn").click(()=>{
   remote.getCurrentWindow().minimize();
 });
 
-$("#export-mp4").click(async ()=>{
+$("#export-btn").click(async ()=>{
   ipcRenderer.invoke("ffmpeg:job",{
     ...message,
     scrubber: {
@@ -124,5 +199,15 @@ $("#export-mp4").click(async ()=>{
     alert("Exported");
   }).catch(()=>{});
 });
+
+$(window).resize(()=>{
+  updateScreenSize();
+});
+
+updateCropRegion();
+setInterval(()=>scrubber.render(),1000/100);
+setInterval(()=>updateCropRegion(),1000/10);
+
+updateScreenSize();
 
 });
