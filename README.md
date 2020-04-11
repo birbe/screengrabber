@@ -5,6 +5,10 @@ Video screen-capturer tool with a nice UI that allows you to do basic video trim
 (more file formats will be added later, as we use FFmpeg.js for exporting)
 
 
+## Examples
+
+![Demo](assets/demo.gif)
+
 ## Installation
 
 - Clone the directory with
