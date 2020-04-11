@@ -188,7 +188,6 @@ class StreamState {
     this.blobs = [];
 
     this.recorder.start();
-    remote.getCurrentWindow().setAlwaysOnTop(true);
 
     this.active = true;
   }
@@ -212,7 +211,6 @@ class StreamState {
       fileReader.readAsArrayBuffer(bigblob);
     }
     this.recorder.stop();
-    remote.getCurrentWindow().setAlwaysOnTop(false);
   }
 }
 

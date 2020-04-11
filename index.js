@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, globalShortcut } = require("electron");
-const { createWorker } = require("@ffmpeg/ffmpeg");
+const { createWorker, setLogging } = require("@ffmpeg/ffmpeg");
+setLogging(true);
 const fs = require("fs");
 
 if(!fs.existsSync("./video")) {
@@ -20,18 +21,21 @@ ipcMain.handle("ffmpeg:job",async (event, message)=>{
 
   let crop = message.crop;
 
-  let cropX = Math.floor(crop.x);
-  let cropY = Math.floor(crop.y);
-  let cropW = Math.floor(crop.width);
-  let cropH = Math.floor(crop.height);
+  let cropX = Math.floor(crop.x)+1;
+  let cropY = Math.floor(crop.y)+1;
+  let cropW = Math.floor(crop.width)+1;
+  let cropH = Math.floor(crop.height)+1;
 
-  const worker = createWorker();
+  const worker = createWorker({
+    logger: ({message})=>console.log(message)
+  });
 
   await worker.load();
   await worker.write(`${message.file}`,`./video/${message.file}`);
-  await worker.run(`-i ${message.file} -codec copy ${message.id}.mp4`);
+  await worker.run(`-i ${message.file} -filter:video crop=${cropW}:${cropH}:${cropX}:${cropY} -threads 5 -preset ultrafast -strict -2 ${message.id}-final.mp4`);
+  //await worker.run(`-i ${message.file} -codec copy ${message.id}.mp4`);
   //await worker.run(`-i ${message.id}.mp4 -filter:v "crop=100:100:100:100" -codec copy ${message.id}-cropped.mp4`);
-  await worker.run(`-i ${message.id}.mp4 -ss ${secondsToTimestamp(message.scrubber.begin)} -t ${secondsToTimestamp(message.scrubber.end)} -c copy ${message.id}-final.mp4`);
+  //await worker.run(`-i ${message.file} -filter:v "crop=${cropW}:${cropH}:${cropX}:${cropY}" -ss ${secondsToTimestamp(message.scrubber.begin)} -t ${secondsToTimestamp(message.scrubber.end)} ${message.id}-final.mp4`);
 
   const { data } = await worker.read(`${message.id}-final.mp4`);
   fs.writeFileSync(`${__dirname}/./video/${message.id}.mp4`,data);
