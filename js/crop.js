@@ -12,38 +12,76 @@ function broadcast(channel,message) {
   });
 }
 
-let region = {};
+function clamp(num,min,max) {
+  return Math.max(min,Math.min(num,max));
+}
+
+let region = {
+  min: {
+    x: 0,
+    y: 0,
+    display
+  },
+  max: {
+    x: 0,
+    y: 0,
+    display
+  }
+};
 let dragging = false;
 
-$("body").on("mousedown",e=>{
+$(document).on("mousedown",e=>{
   dragging = true;
-
-  x1 = e.pageX;
-  y1 = e.pageY;
+  let cursor = remote.screen.getCursorScreenPoint();
+  region = {
+    min: {
+      ...cursor,
+      display
+    },
+    max: {
+      ...cursor,
+      display
+    }
+  };
+  broadcast("crop:state",{
+    dragging,
+    region
+  });
 });
 
-$("body").on("mouseup",e=>{ //We done
+$(document).on("mouseup",e=>{ //We done
   dragging = false;
 
-  let minX = Math.min(x1,x2);
-  let minY = Math.min(y1,y2);
-  let maxX = Math.max(x1,x2);
-  let maxY = Math.max(y1,y2);
+  let cropsize = {
+    min: {
+      x: Math.min(region.min.x,region.max.x),
+      y: Math.min(region.min.y,region.max.y)
+    },
+    max: {
+      x: Math.max(region.min.x,region.max.x),
+      y: Math.max(region.min.y,region.max.y)
+    },
+    relative: {
+      x: Math.min(region.min.x,region.max.x)+region.min.display.bounds.x,
+      y: Math.min(region.min.y,region.max.y)+region.min.display.bounds.y,
+      width: Math.max(region.min.x,region.max.x)-Math.min(region.min.x,region.max.x),
+      height: Math.max(region.min.y,region.max.y)-Math.min(region.min.y,region.max.y)
+    }
+  };
 
-  if(e.pageX != x1 && e.pageY != y1) {
-    mainWindow.webContents.send("crop-size",{x:minX,y:minY,width:maxX-minX,height:maxY-minY});
-  } else {
-    mainWindow.webContents.send("crop-failed");
-  }
-  remote.getCurrentWindow().close();
+  mainWindow.webContents.send("crop-size",cropsize);
+  broadcast("close","");
 });
 
 function updateRegion() {
-  let minX = region.x1+display.bounds.x;
-  let minY = region.y1+display.bounds.y;
+  let minX = clamp( Math.min(region.min.x,region.max.x)-display.bounds.x, 0, display.bounds.width );
+  let minY = clamp( Math.min(region.min.y,region.max.y)-display.bounds.y, 0, display.bounds.height );
 
-  let maxX = region.x2+display.bounds.x;
-  let maxY = region.y2+display.bounds.y;
+  let maxX = clamp( Math.max(region.min.x,region.max.x)-display.bounds.x, 0, display.bounds.width );
+  let maxY = clamp( Math.max(region.min.y,region.max.y)-display.bounds.y, 0, display.bounds.height );
+
+  let w = display.bounds.width;
+  let h = display.bounds.height;
 
   $("#left").css("width",`${minX}px`);
 
@@ -74,10 +112,20 @@ ipcRenderer.on("crop:state",(event,message)=>{
   updateRegion();
 });
 
-$("body").on("mousemove",e=>{
-  if()
+ipcRenderer.on("close",()=>remote.getCurrentWindow().close());
 
-  updateRegion();
+$(document).on("mousemove",e=>{
+  if(dragging) {
+    let cursor = remote.screen.getCursorScreenPoint();
+    region.max = {
+      ...cursor,
+      display
+    }
+    broadcast("crop:state",{
+      dragging,
+      region
+    });
+  }
 });
 
 });

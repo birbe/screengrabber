@@ -7,45 +7,66 @@ const crypto = require("crypto");
 let recording = false;
 let state;
 
-/*
-
-  This code is fairly messy and I need to clean it up, but here's how it works:
-
-  Record button is clicked (jQuery), then record() is called which gets a MediaStream from one of your screens.
-  It creates a StreamState wrapper class which is then called as the MediaRecorder (created inside the class)
-  stops/starts, which then creates the editing window.
-
-*/
+function getScreen(id) {
+  return remote.screen.getAllDisplays().find(s=>s.id==id);
+}
 
 function getScreenDimensions(id) {
   return remote.screen.getAllDisplays().find(s=>s.id==id).size;
 }
 
-function selectScreen() {
-  let displays = remote.screen.getAllDisplays();
-  let windows = [];
-  // for(displays.length) {
-  //   let window = windows.push(new BrowserWindow({
-  //     width: displays[i].size.width,
-  //     height: displays[i].size.height.
-  //     x: displays[i].bounds.x,
-  //     y: displays[i].bounds.y
-  //   }));
-  //   window.loadURL();
-  //   ipcRenderer.once("screen:select",(event,message)=>{
-  //
-  //   });
-  // }
+function getScreensInRegion(region) {
+  let out = [];
+  let screens = remote.screen.getAllDisplays();
+
+  screens.forEach(screen=>{
+    let containsMinX = region.min.x >= screen.bounds.x && region.min.x <= screen.bounds.x+screen.bounds.width;
+    let containsMaxX = region.max.x >= screen.bounds.x && region.max.x <= screen.bounds.x+screen.bounds.width;
+    let containsMinY = region.min.y >= screen.bounds.y && region.min.y <= screen.bounds.y+screen.bounds.height;
+    let containsMaxY = region.max.y >= screen.bounds.y && region.max.y <= screen.bounds.y+screen.bounds.height;
+
+    console.log(screen);
+    console.log(containsMinX);
+    console.log(containsMaxX);
+    console.log(containsMinY);
+    console.log(containsMaxY);
+    if((containsMinX || containsMaxX) && (containsMinY || containsMaxY)) out.push(screen);
+  });
+
+  return out;
+}
+
+function getScreensIDSInRegion(region) {
+  return getScreensInRegion(region).map(d=>{return d.id;});
+}
+
+async function asyncForEach(arr,cb) {
+  for(let i=0;i<arr.length;i++) await cb(arr[i]);
 }
 
 function record(crop) {
+  recording = true;
 
-  return new Promise((res,rej)=>{
+  let sourcesOut = [];
+  let screens = getScreensInRegion(crop);
+  let screenIds = getScreensIDSInRegion(crop);
 
-    desktopCapturer.getSources({types:["screen"]}).then(async sources=>{
-      const source = sources[0];
+  let hasId = id=>{
+    let yes = false;
+    screens.forEach(s=>{
+      if(s.id == id) yes = true;
+    });
+    return yes;
+  }
+
+  return new Promise(async (res,rej)=>{
+
+    let sources = await desktopCapturer.getSources({types:["screen"]});
+
+    await asyncForEach(sources, async source=>{
+      if(!hasId(source.display_id)) return;
+
       let displaySize = getScreenDimensions(source.display_id);
-      console.log(displaySize);
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -62,21 +83,20 @@ function record(crop) {
           }
         });
 
-        let state = handleStream(stream,{
-          crop:crop||{
-            x:0,y:0,
-            ...displaySize
-          },
-          width:displaySize.width,
-          height:displaySize.height
+        sourcesOut.push({
+          stream, display:getScreen(source.display_id)
         });
-        recording = true;
-        res(state);
 
       } catch(e) {
-        rej(e);
+        console.log("Failed getting media source!");
       }
     });
+
+    let state = handleStreams({
+      crop,
+      sources: sourcesOut
+    });
+    res(state);
   });
 }
 
@@ -106,20 +126,25 @@ function getCropSelection() {
     }
     cropWindows.push(browser);
 
-    //browser.window.toggleDevTools();
     browser.window.setFullScreen(true);
     browser.window.loadURL(`file://${__dirname}/../html/crop.html`);
+
     wcIds.push(browser.window.webContents.id);
   }
 
   cropWindows.forEach(info=>{
-    info.window.once("dom-ready",()=>
+    info.window.webContents.once("dom-ready",()=>{
       info.window.webContents.send("do-crop",{
         wcIds,
-        info
+        browser: info
       })
-    );
+    });
   });
+
+  cropWindows.forEach(info=>{
+    info.window.webContents.once("crop-size",()=>info.window.close());
+  });
+
 }
 
 function updateRecButton() {
@@ -181,56 +206,98 @@ function createEditingWindow(info) {
 }
 
 class StreamState {
-  constructor(stream,data) {
-    this.stream = stream;
-    this.recorder = new MediaRecorder(stream,{
-      videoBitsPerSecond: 6*1000*1000,
-      mimeType: "video/x-matroska"
-    });
+  constructor(data) {
+    this.sources = data.sources;
+    this.recorders = [];
+    this.crop = data.crop;
+    this.active = false;
+    this.videoId = getVideoID();
+
     this.startTime = 0;
     this.stopTime = 0;
+  }
 
-    this.recorder.onstart = ()=>{
-      this.startTime = Date.now();
-    }
-    this.recorder.onstop = ()=>{
-      this.stopTime = Date.now();
-    }
+  init() {
+    let num = 0;
+    this.sources.forEach(source=>{
+      let tId = num++;
+      let recorderInfo = {
+        recorder: new MediaRecorder(source.stream,{
+          videoBitsPerSecond: 6*1000*1000,
+          mimeType: "video/x-matroska"
+        }),
+        blobs: [],
+        id:tId,
+        fileId: `${this.videoId+tId}`,
+        fileName: `${this.videoId+tId}.mkv`,
+        display: source.display
+      };
 
-    this.crop = data.crop;
-    this.width = data.width;
-    this.height = data.height;
-    console.log(this);
-    this.active = false;
+      recorderInfo.recorder.ondataavailable = event=>{
+        recorderInfo.blobs.push(event.data);
+
+        let bigblob = new Blob(recorderInfo.blobs, {type: "video/x-matroska"});
+        let id = `${this.videoId+tId}`;
+        let file = `${id}.mkv`;
+        let fileReader = new FileReader();
+        let $this = this;
+        fileReader.onload = function() {
+          let buf = Buffer.from(new Uint8Array(this.result));
+          fs.writeFileSync(`./video/${file}`, buf);
+        }
+        fileReader.readAsArrayBuffer(bigblob);
+      }
+      this.recorders.push(recorderInfo);
+    });
   }
 
   start() {
-    this.blobs = [];
+    this.startTime = Date.now();
 
-    this.recorder.start();
+    recording = true; //music makes me lose control
+    this.recorders.forEach(r=>r.recorder.start());
 
     this.active = true;
   }
 
   stop() {
+    this.stopTime = Date.now();
     this.active = false;
 
-    this.recorder.ondataavailable = event=>{
-      this.blobs.push(event.data);
+    let stopped = 0;
+    this.recorders.forEach(recInfo=>{
+      recInfo.recorder.onstop = async ()=>{
+        stopped++;
+        if(stopped == this.recorders.length) {
+          //createEditingWindow({id,file,duration:$this.stopTime-$this.startTime,crop:$this.crop,width:$this.width,height:$this.height});
+          await this.saveMedia();
+          recording = false;
+          updateRecButton();
+        }
+      };
 
-      let bigblob = new Blob(this.blobs, {type: "video/x-matroska"});
-      let id = `${getVideoID()}`;
-      let file = `${id}.mkv`;
-      let fileReader = new FileReader();
-      let $this = this;
-      fileReader.onload = function() {
-        let buf = Buffer.from(new Uint8Array(this.result));
-        fs.writeFileSync(`./video/${file}`, buf);
-        createEditingWindow({id,file,duration:$this.stopTime-$this.startTime,crop:$this.crop,width:$this.width,height:$this.height});
-      }
-      fileReader.readAsArrayBuffer(bigblob);
+      recInfo.recorder.stop();
+    });
+  }
+
+  async saveMedia() {
+    if(this.recorders.length > 1) {
+      ipcMain.invoke("ffmpeg:splice",);
+    } else {
+      createEditingWindow({
+        crop: {
+          x: this.crop.relative.x,
+          y: this.crop.relative.y,
+          width: this.crop.relative.width,
+          height: this.crop.relative.height
+        },
+        duration: this.stopTime-this.startTime,
+        width: this.recorders[0].display.bounds.width,
+        height: this.recorders[0].display.bounds.height,
+        file: this.recorders[0].fileName,
+        id: this.recorders[0].fileId
+      });
     }
-    this.recorder.stop();
   }
 }
 
@@ -252,8 +319,10 @@ function toBuffer(ab) {
     return buffer;
 }
 
-function handleStream(stream,crop) {
-  return new StreamState(stream,crop);
+function handleStreams(data) {
+  let state = new StreamState(data);
+  state.init();
+  return state;
 
   // const video = document.querySelector("video");
   // video.srcObject = stream;
@@ -265,7 +334,6 @@ ipcRenderer.on("docrop",()=>{
 });
 
 ipcRenderer.on("crop-size",async (event,size)=>{
-  console.log(size);
   state = await record(size);
   state.start();
 
@@ -283,7 +351,7 @@ $("#stop-record").click(()=>{
   }
   updateRecButton();
 });
-
+//MUSIC MAKES ME LOSE CONTROL
 $("#crop").click(()=>{
   if(!recording) getCropSelection();
 });

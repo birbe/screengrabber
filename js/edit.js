@@ -6,11 +6,11 @@ const fs = require("fs");
 const shell = remote.shell;
 
 ipcRenderer.on("vid-src",(event,message)=>{
+console.log(message);
 const Scrubber = require("./scrubber.js");
 
 $("#video-preview").attr("src",`${__dirname}/../video/${message.file}`);
 
-console.log(message);
 
 let scrub_ctx = $("#scrubber")[0].getContext("2d");
 let video = $("#video-preview")[0];
