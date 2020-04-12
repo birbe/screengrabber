@@ -85,21 +85,41 @@ function getVideoID() {
 }
 
 function getCropSelection() {
-  let cropWindow = new remote.BrowserWindow({
-    width: 1920,
-    height: 1080,
-    webPreferences: {
-      nodeIntegration: true
-    },
-    frame: false,
-    transparent: true,
-    resizable: false
+  let cropWindows = [];
+  let displays = remote.screen.getAllDisplays();
+  let wcIds = [];
+  for(i=0;i<displays.length;i++) {
+    let browser = {
+      window: new remote.BrowserWindow({
+        x: displays[i].bounds.x,
+        y: displays[i].bounds.y,
+        width: displays[i].bounds.width,
+        height: displays[i].bounds.height,
+        webPreferences: {
+          nodeIntegration: true
+        },
+        frame: false,
+        transparent: true,
+        resizable: false
+      }),
+      display: displays[i]
+    }
+    cropWindows.push(browser);
+
+    //browser.window.toggleDevTools();
+    browser.window.setFullScreen(true);
+    browser.window.loadURL(`file://${__dirname}/../html/crop.html`);
+    wcIds.push(browser.window.webContents.id);
+  }
+
+  cropWindows.forEach(info=>{
+    info.window.once("dom-ready",()=>
+      info.window.webContents.send("do-crop",{
+        wcIds,
+        info
+      })
+    );
   });
-
-  cropWindow.setFullScreen(true);
-  cropWindow.loadURL(`file://${__dirname}/../html/crop.html`);
-
-  cropWindow.webContents.once("dom-ready",()=>cropWindow.webContents.send("do-crop",""));
 }
 
 function updateRecButton() {

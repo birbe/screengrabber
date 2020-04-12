@@ -179,6 +179,12 @@ $("#scrubber").mousedown(e=>{
 })();
 
 function saveVideo(ext) {
+  let exportDOM = $("#export-panel").html();
+  $("#export-panel").html(`
+<div style="display: flex; flex-flow: row; width: 100%; height: 100%; text-align: center;">
+  <p style="color: #0f89f5;">Exporting to .${ext}</p>
+</div>
+`);
   ipcRenderer.invoke("ffmpeg:job",{
     ...message,
     scrubber: {
@@ -190,6 +196,7 @@ function saveVideo(ext) {
     height: message.height
   })
   .then(e=>{
+    $("#export-panel").html(exportDOM);
     alert("Exported");
   }).catch(()=>{});
 }
