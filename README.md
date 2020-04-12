@@ -8,8 +8,13 @@ Video screen-capturer tool with a nice UI that allows you to do basic video trim
 ## Examples
 
 ![Demo](assets/demo.gif)
+*poor dithering quality in the GIF is caused by the browser, and not the program; try zooming in
 
 ## Installation
+
+You must download Node.js before you can install screengrabber (version 12 or higher)
+
+https://nodejs.org/en/download/
 
 - Clone the directory with
 
