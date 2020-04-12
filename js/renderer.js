@@ -168,8 +168,6 @@ async function beginRecording() {
   recording = true;
   updateRecButton();
 
-  //remote.getCurrentWindow().minimize();
-
   if(!recording) { //not recording anymore
     state.stop();
   } else {
@@ -323,10 +321,6 @@ function handleStreams(data) {
   let state = new StreamState(data);
   state.init();
   return state;
-
-  // const video = document.querySelector("video");
-  // video.srcObject = stream;
-  // video.onloadedmetadata = (e) => video.play();
 }
 
 ipcRenderer.on("docrop",()=>{
@@ -351,7 +345,7 @@ $("#stop-record").click(()=>{
   }
   updateRecButton();
 });
-//MUSIC MAKES ME LOSE CONTROL
+
 $("#crop").click(()=>{
   if(!recording) getCropSelection();
 });

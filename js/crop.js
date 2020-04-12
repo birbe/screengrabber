@@ -62,8 +62,8 @@ $(document).on("mouseup",e=>{ //We done
       y: Math.max(region.min.y,region.max.y)
     },
     relative: {
-      x: Math.min(region.min.x,region.max.x)+region.min.display.bounds.x,
-      y: Math.min(region.min.y,region.max.y)+region.min.display.bounds.y,
+      x: Math.min(region.min.x,region.max.x)-region.min.display.bounds.x,
+      y: Math.min(region.min.y,region.max.y)-region.min.display.bounds.y,
       width: Math.max(region.min.x,region.max.x)-Math.min(region.min.x,region.max.x),
       height: Math.max(region.min.y,region.max.y)-Math.min(region.min.y,region.max.y)
     }
