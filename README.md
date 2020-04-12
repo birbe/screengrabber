@@ -18,8 +18,8 @@ https://nodejs.org/en/download/
 
 - Clone the directory with
 
-- - `git clone https://github.com/Birbe/screengrabber.git`
-- CD into it
+- - `git clone https://github.com/Birbe/screengrabber.git` or click "Download ZIP" and extract it somewhere
+- CD into it (or simply open up the extracted directory if you downloaded the ZIP)
 
 - - `cd screengrabber`
 - Install necessary node modules
