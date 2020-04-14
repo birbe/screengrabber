@@ -1,23 +1,23 @@
-const margin = 60;
+const MARGIN = 60;
 const BLUE = "#0f89f5";
 
 function secondsToTimestamp(seconds) {
   let h = Math.floor(seconds/3600 % 60).toString();
-  h = h.length==1?`0${h}`:h;
+  h = h.length===1?`0${h}`:h;
   let m = Math.floor(seconds/60 % 60).toString();
-  m = m.length==1?`0${m}`:m;
+  m = m.length===1?`0${m}`:m;
   let s = Math.floor(seconds % 60).toString();
-  s = s.length==1?`0${s}`:s;
+  s = s.length===1?`0${s}`:s;
   let ms = ((seconds%1)).toFixed(2).split(".")[1];
   return `${h}:${m}:${s}.${ms}`;
 }
 
 function calculateTimelinePos(s,time) {
-  return (time/s.length)*(s.width-(margin*2))+margin;
+  return (time/s.length)*(s.width-(MARGIN*2))+MARGIN;
 }
 
-function calculateTimelinePosFromX(s,x) {
-  return (x-margin)/(s.width-(margin*2))*s.length;
+function calculateTimeFromX(s,x) {
+  return (x-MARGIN)/(s.width-(MARGIN*2))*s.length;
 }
 
 function calcPlaybackHeadX(s) {
@@ -32,24 +32,24 @@ function drawPlaybackHead(s) {
   ctx.fillStyle = BLUE;
   ctx.strokeStyle = BLUE;
   ctx.beginPath();
-  ctx.moveTo(x-20,margin-20);
-  ctx.lineTo(x+20,margin-20);
-  ctx.lineTo(x,margin);
+  ctx.moveTo(x-20,MARGIN-20);
+  ctx.lineTo(x+20,MARGIN-20);
+  ctx.lineTo(x,MARGIN);
   ctx.closePath();
   ctx.fill();
 
   ctx.beginPath();
-  ctx.moveTo(x,margin);
+  ctx.moveTo(x,MARGIN);
   ctx.lineTo(x,s.height);
   ctx.closePath();
   ctx.stroke();
 }
 
-function drawTrim(s) {
+function drawTrimmers(s) {
   let ctx = s.context;
 
   let tWidth = 40; //trimmer width
-  let tHeight = s.height-(margin*2); //trimmer height
+  let tHeight = s.height-(MARGIN*2); //trimmer height
 
   let beginTrimX = calculateTimelinePos(s,s.beginTime)-tWidth;
   let endTrimX = calculateTimelinePos(s,s.endTime);
@@ -65,23 +65,23 @@ function drawTrim(s) {
   //Left trim marker
 
 
-  ctx.arc(beginTrimX+borderRadius,margin+borderRadius,borderRadius,Math.PI,Math.PI*1.5); //Top left
-  ctx.lineTo(beginTrimX+tWidth,margin); //Top right
-  ctx.lineTo(beginTrimX+tWidth,margin+tHeight); //Bottom right
-  ctx.arc(beginTrimX+borderRadius,margin+tHeight-borderRadius,borderRadius,Math.PI*0.5,Math.PI); //Bottom left
+  ctx.arc(beginTrimX+borderRadius,MARGIN+borderRadius,borderRadius,Math.PI,Math.PI*1.5); //Top left
+  ctx.lineTo(beginTrimX+tWidth,MARGIN); //Top right
+  ctx.lineTo(beginTrimX+tWidth,MARGIN+tHeight); //Bottom right
+  ctx.arc(beginTrimX+borderRadius,MARGIN+tHeight-borderRadius,borderRadius,Math.PI*0.5,Math.PI); //Bottom left
   ctx.closePath();
 
   //Top and bottom borders
 
   if(!s.trimming) {
-    ctx.rect(beginTrimX+tWidth,margin,endTrimX-beginTrimX-tWidth,borderThickness);
-    ctx.rect(beginTrimX+tWidth,margin+tHeight-borderThickness,endTrimX-beginTrimX-tWidth,borderThickness);
+    ctx.rect(beginTrimX+tWidth,MARGIN,endTrimX-beginTrimX-tWidth,borderThickness);
+    ctx.rect(beginTrimX+tWidth,MARGIN+tHeight-borderThickness,endTrimX-beginTrimX-tWidth,borderThickness);
   }
 
-  ctx.moveTo(endTrimX,margin);
-  ctx.arc(endTrimX+tWidth-borderRadius,margin+borderRadius,borderRadius,Math.PI*1.5,0);
-  ctx.arc(endTrimX+tWidth-borderRadius,margin+tHeight-borderRadius,borderRadius,0,Math.PI*0.5);
-  ctx.lineTo(endTrimX,margin+tHeight);
+  ctx.moveTo(endTrimX,MARGIN);
+  ctx.arc(endTrimX+tWidth-borderRadius,MARGIN+borderRadius,borderRadius,Math.PI*1.5,0);
+  ctx.arc(endTrimX+tWidth-borderRadius,MARGIN+tHeight-borderRadius,borderRadius,0,Math.PI*0.5);
+  ctx.lineTo(endTrimX,MARGIN+tHeight);
 
   ctx.closePath();
 
@@ -92,16 +92,72 @@ function drawTrim(s) {
 }
 
 function isOverHead(s,x,y) {
-  let minX = margin;
+  let minX = MARGIN;
   let minY = 0;
-  let maxX = s.width-margin;
-  let maxY = margin;
+  let maxX = s.width-MARGIN;
+  let maxY = MARGIN;
 
   return x >= minX && x <= maxX && y >= minY && y <= maxY;
 }
 
 function clamp(num,min,max) {
   return Math.max(min,Math.min(num,max));
+}
+
+class Region {
+  constructor(minX,minY,maxX,maxY) {
+    this.minX = minX;
+    this.minY = minY;
+    this.maxX = maxX;
+    this.maxY = maxY;
+    this.dragging = false;
+
+    this.offsetX = 0;
+    this.offsetY = 0;
+  }
+
+  intersects(x,y) {
+    return x >= this.getMinY() && x <= this.getMaxX() && y >= this.getMinY() && y <= this.getMaxY();
+  }
+
+  isDragging() {
+    return this.dragging;
+  }
+
+  setDragging(offsetX,offsetY,bool) {
+    this.offsetX = offsetX-this.getMinX();
+    this.offsetY = offsetY-this.getMinY();
+
+    this.dragging = bool;
+  }
+
+  getMinX() {
+    return this.minX;
+  }
+
+  getMinY() {
+    return this.minY;
+  }
+
+  getMaxX() {
+    return this.maxX;
+  }
+
+  getMaxY() {
+    return this.maxY;
+  }
+}
+
+class DynamicRegion extends Region {
+  constructor(intersects,getMinX,getMinY,getMaxX,getMaxY) {
+    super(0,0,0,0);
+
+    this.intersects = intersects || this.intersects;
+    this.getMinX = getMinX || this.getMinX;
+    this.getMinY = getMinY || this.getMinY;
+    this.getMaxX = getMaxX || this.getMaxX;
+    this.getMaxY = getMaxY || this.getMaxY;
+  }
 }
 
 class Scrubber {
@@ -116,12 +172,24 @@ class Scrubber {
     this.beginTime = 0;
     this.endTime = this.length;
 
-    this.draggingHead = false;
-    this.draggingTrim1 = false;
-    this.draggingTrim2 = false;
-
     this.video = video;
     this.dragOffset = 0;
+
+    let $this = this;
+
+    this.clickBoxes = {
+      "head": new DynamicRegion(null,()=>MARGIN,()=>0,()=>this.getWidth()-MARGIN,()=>MARGIN),
+      "trimmer-1": new DynamicRegion(function(x,y) { //Set the this scope to the Region class and not inherit
+        return x >= this.getMinX() && x <= this.getMaxX() && y >= this.getMinY() && y <= this.getMaxY();
+      },()=>calculateTimelinePos(this,this.beginTime)-this.getTrimmerWidth(),()=>MARGIN,()=>calculateTimelinePos(this,this.beginTime), ()=>MARGIN+this.getTrimmerHeight()),
+      "trimmer-2": new DynamicRegion(function(x,y) {
+        return x >= this.getMinX() && x <= this.getMaxX() && y >= this.getMinY() && y <= this.getMaxY();
+      }, ()=>calculateTimelinePos(this,this.endTime),()=>MARGIN,()=>calculateTimelinePos(this,this.endTime)+$this.getTrimmerWidth(),()=>MARGIN+this.getTrimmerHeight()),
+      "trim": new DynamicRegion(function (x,y) {
+        return x >= this.getMinX() && x <= this.getMaxX() && y >= this.getMinY() && y <= this.getMaxY();
+      },()=>calculateTimelinePos(this,this.beginTime),()=>MARGIN,()=>calculateTimelinePos(this,this.endTime),()=>MARGIN+this.getTrimmerHeight())
+
+    };
   }
 
   setTime(time) {
@@ -132,48 +200,63 @@ class Scrubber {
     return this.currentTime;
   }
 
-  onUserScrubbed(time) {}
+  getTrimmerHeight() {
+    return this.trimmerHeight;
+  }
+
+  getTrimmerWidth() {
+    return this.trimmerWidth;
+  }
+
+  getWidth() {
+    return this.width;
+  }
+
+  getHeight() {
+    return this.height;
+  }
 
   onClick(x,y) {
   }
 
   onMousedown(x,y) {
-    this.draggingHead = isOverHead(this,x,y);
-
-    let trimPos1 = calculateTimelinePos(this,this.beginTime);
-    let trimPos2 = calculateTimelinePos(this,this.endTime);
-
-    this.draggingTrim1 = x >= trimPos1-this.tWidth && x <= trimPos1 && y >= margin && y <= margin+this.tHeight;
-    this.draggingTrim2 = x >= trimPos2 && x <= trimPos2 + this.tWidth && y >= margin && y <= margin+this.tHeight;
-
-    if(this.draggingTrim1) {
-      this.dragOffset = trimPos1-x;
-    } else if(this.draggingTrim2) {
-      this.dragOffset = trimPos2-x;
+    for(let key in this.clickBoxes) {
+      let box = this.clickBoxes[key];
+      console.log(`${key}: ${box.intersects(x,y)}`);
+      box.setDragging(x,y,box.intersects(x,y));
     }
   }
 
   onMouseup(x,y) {
-    this.draggingHead = false;
-    this.draggingTrim1 = false;
-    this.draggingTrim2 = false;
+    for(let key in this.clickBoxes) this.clickBoxes[key].setDragging(false);
   }
 
   onDrag(x1,y1,x2,y2) {
-    if(this.draggingHead) {
-      this.currentTime = clamp(calculateTimelinePosFromX(this,x2),this.beginTime,this.endTime);
+    let head = this.clickBoxes["head"];
+    let trimmer_1 = this.clickBoxes["trimmer-1"];
+    let trimmer_2 = this.clickBoxes["trimmer-2"];
+    let trim = this.clickBoxes["trim"];
+
+    if(head.isDragging()) {
+      console.log("head");
+      this.currentTime = clamp(calculateTimeFromX(this,x2),this.beginTime,this.endTime);
       this.onUserScrubbed(this.currentTime);
     }
-    if(this.draggingTrim1) {
-      this.beginTime = clamp(calculateTimelinePosFromX(this,x2+this.dragOffset),0,this.endTime);
-      this.currentTime = clamp(this.currentTime,this.beginTime,this.endTime);
-      this.onUserScrubbed(this.currentTime);
-    } else if(this.draggingTrim2) {
-      this.endTime = clamp(calculateTimelinePosFromX(this,x2+this.dragOffset),this.beginTime,this.length);
-      this.currentTime = clamp(this.currentTime,this.beginTime,this.endTime);
-      this.onUserScrubbed(this.currentTime);
+
+    if(trimmer_1.isDragging())
+      this.beginTime = clamp(calculateTimeFromX(this,x2+trimmer_1.offsetX),0,this.endTime);
+    else if(trimmer_2.isDragging())
+      this.endTime = clamp(calculateTimeFromX(this,x2-trimmer_2.offsetX),this.beginTime,this.length);
+    else if(trim.isDragging()) {
+      let timeChange = Math.max(-this.beginTime, Math.min(calculateTimeFromX(this, x2-trim.offsetX),this.beginTime+(this.length-this.endTime))-this.beginTime);
+      this.beginTime += timeChange;
+      this.endTime += timeChange;
     }
-    this.trimming = this.draggingTrim1 || this.draggingTrim2;
+
+    this.currentTime = clamp(this.currentTime,this.beginTime,this.endTime);
+    this.onUserScrubbed(this.currentTime);
+
+    this.trimming = this.clickBoxes["trimmer-1"].isDragging() || this.clickBoxes["trimmer-2"].isDragging();
   }
 
   setDimensions(width,height) {
@@ -181,54 +264,57 @@ class Scrubber {
     this.height = height;
   }
 
+  onUserScrubbed() {}
+
   render() {
-    this.tWidth = 40; //trimmer width
-    this.tHeight = this.height-(margin*2); //trimmer height
+    this.trimmerWidth = 40; //trimmer width
+    this.trimmerHeight = this.height-(MARGIN*2); //trimmer height
 
-    this.context.clearRect(0,0,this.width,this.height);
+    this.context.clearRect(0,0,this.width,this.height); //Reset the screen for drawing
 
-    this.context.save();
+    this.context.save(); //Save the unclipped state
 
-    this.context.rect(margin,margin,this.width-margin*2,this.height - (margin*2)); //Clip everything outside the timeline
-    this.context.clip();
+    this.context.rect(MARGIN,MARGIN,this.width-MARGIN*2,this.height - (MARGIN*2)); //Define the clip region
+    this.context.clip(); //Set the clip
 
     this.context.fillStyle = "#191919";
     this.context.rect(0,0,this.width,this.height); //Draw the timeline fill
     this.context.fill();
 
     this.context.restore(); //Restore the normal "un-clipped" state
-    this.context.save(); //Save the unclipped state
+    this.context.save(); //Save the unclipped state again
 
-    this.context.beginPath(); //clear the path just in case?
-    this.context.rect(margin,margin,this.width-margin*2,this.height - (margin*2)); //Clip everything outside the timeline
+    this.context.beginPath(); //Clear the path
+    this.context.rect(MARGIN,MARGIN,this.width-MARGIN*2,this.height - (MARGIN*2)); //Clip everything outside the timeline
     this.context.clip();
 
     //Draw timeline elements here.
-    let timelineHeight = this.height-margin*2;
-    let timelineWidth = this.width-margin*2;
+
+    let timelineHeight = this.getHeight()-MARGIN*2;
+    let timelineWidth = this.getWidth()-MARGIN*2;
 
     let vertScale = timelineHeight/this.video.videoHeight;
     let horizScale = timelineWidth/this.video.videoWidth;
 
-    this.context.scale(horizScale,vertScale);
+    this.context.scale(horizScale,vertScale); //Scale the video
 
-    this.context.filter = "blur(5px)";
-    this.context.drawImage(this.video,margin/horizScale,margin/vertScale);
-    this.context.filter = "none";
+    this.context.filter = "blur(5px)"; //Blur it
+    this.context.drawImage(this.video,MARGIN/horizScale,MARGIN/vertScale); //Draw the preview of the video
+    this.context.filter = "none"; //Remove the blur
 
 
     this.context.setTransform(1, 0, 0, 1, 0, 0); //Reset transformation matrix
 
-    this.context.beginPath();
+    this.context.beginPath(); //Reset the path
     this.context.fillStyle = "rgba(0, 0, 0, 0.7)";
-    this.context.rect(margin,margin,calculateTimelinePos(this.beginTime)-margin,timelineHeight);
-    this.context.rect(margin+calculateTimelinePos(this.endTime),margin,timelineWidth-calculateTimelinePos(this.beginTime)-margin,timelineHeight);
-    this.context.fill();
+    this.context.rect(MARGIN,MARGIN,calculateTimelinePos(this,this.beginTime)-MARGIN,timelineHeight); //Dim the parts to the left of the trim
+    this.context.rect(calculateTimelinePos(this,this.endTime),MARGIN,timelineWidth,timelineHeight); //To the right
+    this.context.fill(); //Fill
 
     this.context.restore(); //Restore the unclipped state
 
     this.context.beginPath(); //Reset the path
-    drawTrim(this);
+    drawTrimmers(this); //Draw the trimmers
 
     drawPlaybackHead(this);
 
@@ -240,13 +326,14 @@ class Scrubber {
     this.context.fillStyle = "#fff";
     this.context.fillText(secondsToTimestamp(this.endTime-this.beginTime),250,40);
 
-    if(this.trimming) {
-      let time = this.draggingTrim1 ? this.beginTime : this.endTime;
-      let x = calculateTimelinePos(this,time)+this.tWidth+5;
+    if(this.trimming) { //Draw the timestamp of the currently-being-dragged trimmer
+      let time = this.clickBoxes["trimmer-1"].isDragging() ? this.beginTime : this.endTime;
+
+      let x = calculateTimelinePos(this,time)+this.trimmerWidth+5;
       let str = secondsToTimestamp(time);
-      x = Math.min(timelineWidth+margin-this.context.measureText(str).width,x);
-      this.context.fillStyle = "#f2a427";
-      this.context.fillText(str,x,margin+this.tHeight/2);
+      x = Math.min(timelineWidth+MARGIN-this.context.measureText(str).width,x); //Keep the timestamp inside the timeline
+      this.context.fillStyle = "#f2a427"; //Orange
+      this.context.fillText(str,x,MARGIN+this.trimmerHeight/2); //Draw the text
     }
 
   }

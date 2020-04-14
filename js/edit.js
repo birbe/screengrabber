@@ -17,10 +17,6 @@ let video = $("#video-preview")[0];
 
 let scrubber = new Scrubber(scrub_ctx, message.duration/1000, 0, 0, video);
 
-scrubber.onUserScrubbed = t=>{
-  video.currentTime = t;
-}
-
 function updateScreenSize() {
   let rect = $("#scrubber-panel")[0].getBoundingClientRect();
   let { width, height } = rect;
@@ -36,42 +32,53 @@ function updateCropRegion() {
   let hScale = rect.height/message.height;
   let crop = message.crop;
 
-  $("#left").css("left",`${rect.x}px`);
-  $("#left").css("top",`${rect.y}px`);
-  $("#left").css("width",`${crop.x*wScale}`);
-  $("#left").css("height",`${rect.height}px`);
+  let left = $("#left");
+  let top = $("#top");
+  let bottom = $("#bottom");
+  let right = $("#right");
+  let cs = $("#crop-selection");
+  let ctl = $("#crop-top-left");
+  let cbr = $("#crop-bottom-right");
 
-  $("#top").css("left",`${rect.x+crop.x*wScale}px`);
-  $("#top").css("top",`${rect.y}px`);
-  $("#top").css("width",`${crop.width*wScale}px`);
-  $("#top").css("height",`${crop.y*hScale}px`);
+  left.css("left",`${rect.x}px`);
+  left.css("top",`${rect.y}px`);
+  left.css("width",`${crop.x*wScale}`);
+  left.css("height",`${rect.height}px`);
 
-  $("#bottom").css("left",`${rect.x+crop.x*wScale}px`);
-  $("#bottom").css("top",`${rect.y+(crop.height+crop.y)*hScale}px`);
-  $("#bottom").css("width",`${crop.width*wScale}px`);
-  $("#bottom").css("height",`${rect.height-((crop.height+crop.y)*hScale)}px`);
+  top.css("left",`${rect.x+crop.x*wScale}px`);
+  top.css("top",`${rect.y}px`);
+  top.css("width",`${crop.width*wScale}px`);
+  top.css("height",`${crop.y*hScale}px`);
 
-  $("#right").css("left",`${rect.x+((crop.width+crop.x)*wScale)}px`);
-  $("#right").css("top",`${rect.y}px`);
-  $("#right").css("width",`${rect.width-((crop.width+crop.x)*wScale)}px`);
-  $("#right").css("height",`${rect.height}px`);
+  bottom.css("left",`${rect.x+crop.x*wScale}px`);
+  bottom.css("top",`${rect.y+(crop.height+crop.y)*hScale}px`);
+  bottom.css("width",`${crop.width*wScale}px`);
+  bottom.css("height",`${rect.height-((crop.height+crop.y)*hScale)}px`);
 
-  $("#crop-selection").css("left",`${rect.x+crop.x*wScale}px`);
-  $("#crop-selection").css("top",`${rect.y+crop.y*hScale}px`);
-  $("#crop-selection").css("width",`${crop.width*wScale}px`);
-  $("#crop-selection").css("height",`${crop.height*hScale}px`);
+  right.css("left",`${rect.x+((crop.width+crop.x)*wScale)}px`);
+  right.css("top",`${rect.y}px`);
+  right.css("width",`${rect.width-((crop.width+crop.x)*wScale)}px`);
+  right.css("height",`${rect.height}px`);
 
-  $("#crop-top-left").css("top",`${rect.y+crop.y*hScale-20}px`);
-  $("#crop-top-left").css("left",`${rect.x+crop.x*wScale-20}px`);
+  cs.css("left",`${rect.x+crop.x*wScale}px`);
+  cs.css("top",`${rect.y+crop.y*hScale}px`);
+  cs.css("width",`${crop.width*wScale}px`);
+  cs.css("height",`${crop.height*hScale}px`);
 
-  $("#crop-bottom-right").css("top",`${rect.y+(crop.y+crop.height)*hScale+1}px`);
-  $("#crop-bottom-right").css("left",`${rect.x+(crop.x+crop.width)*wScale+1}px`);
+  ctl.css("top",`${rect.y+crop.y*hScale-20}px`);
+  ctl.css("left",`${rect.x+crop.x*wScale-20}px`);
+
+  cbr.css("top",`${rect.y+(crop.y+crop.height)*hScale+1}px`);
+  cbr.css("left",`${rect.x+(crop.x+crop.width)*wScale+1}px`);
 }
 
 function clamp(num,min,max) {
   return Math.max(min,Math.min(num,max));
 }
 
+//Callbacks
+
+scrubber.onUserScrubbed = time=>video.currentTime=time;
 
 let draggingScrubber = false;
 let mousedownScrubber = false;
@@ -223,7 +230,7 @@ $(window).resize(()=>{
 });
 
 updateCropRegion();
-setInterval(()=>scrubber.render(),1000/100);
+setInterval(()=>scrubber.render(),1000/60);
 setInterval(()=>updateCropRegion(),1000/10);
 
 updateScreenSize();

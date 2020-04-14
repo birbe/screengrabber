@@ -83,27 +83,31 @@ function updateRegion() {
   let w = display.bounds.width;
   let h = display.bounds.height;
 
-  $("#left").css("width",`${minX}px`);
+  let top = $("#top");
+  let bottom = $("#bottom");
+  let left = $("#left");
+  let right = $("#right");
+  let selection = $("#selection");
 
-  $("#right").css("left",`${maxX}px`);
-  $("#right").css("width",`${w-maxX}px`);
+  left.css("width",`${minX}px`);
 
-  $("#top").css("width",`${maxX-minX}px`);
-  $("#top").css("height",`${minY}px`);
+  right.css("left",`${maxX}px`);
+  right.css("width",`${w-maxX}px`);
 
-  $("#bottom").css("width",`${maxX-minX}px`);
-  $("#bottom").css("height",`${h-maxY}px`);
-  $("#bottom").css("left",`${minX}px`);
-  $("#bottom").css("top",`${maxY}px`);
+  top.css("width",`${maxX-minX}px`);
+  top.css("height",`${minY}px`);
+  top.css("left",`${minX}px`);
 
-  $("#selection").css("width",`${maxX-minX}px`);
-  $("#selection").css("height",`${maxY-minY}px`);
+  bottom.css("width",`${maxX-minX}px`);
+  bottom.css("height",`${h-maxY}px`);
+  bottom.css("left",`${minX}px`);
+  bottom.css("top",`${maxY}px`);
+  bottom.css("left",`${minX}px`);
 
-  $("#top").css("left",`${minX}px`);
-  $("#bottom").css("left",`${minX}px`);
-
-  $("#selection").css("left",`${minX}px`);
-  $("#selection").css("top",`${minY}px`);
+  selection.css("left",`${minX}px`);
+  selection.css("top",`${minY}px`);
+  selection.css("width",`${maxX-minX}px`);
+  selection.css("height",`${maxY-minY}px`);
 }
 
 ipcRenderer.on("crop:state",(event,message)=>{
