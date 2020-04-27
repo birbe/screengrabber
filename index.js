@@ -27,11 +27,9 @@ ipcMain.handle("ffmpeg:job", async (event, message)=>{
   let cropW = Math.floor(crop.width)+1;
   let cropH = Math.floor(crop.height)+1;
 
-  const worker = createWorker({
-    logger: ({message})=>console.log(message)
-  });
+  const worker = createWorker();
 
-  let cropStr = cropW == message.width && cropH == message.height ? `` : `-filter:video crop=${cropW}:${cropH}:${cropX}:${cropY}`;
+  let cropStr = cropW === message.width && cropH === message.height ? `` : `-filter:video crop=${cropW}:${cropH}:${cropX}:${cropY}`;
 
   await worker.load();
   await worker.write(`${message.file}`,`./video/${message.file}`);
@@ -55,8 +53,6 @@ function generateFFfilter(inputs) {
   */
 
   let outStr = "";
-
-
 }
 
 ipcMain.handle("ffmpeg:splice", async (event,message)=>{

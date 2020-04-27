@@ -25,7 +25,7 @@ function calcPlaybackHeadX(s) {
 }
 
 function drawPlaybackHead(s) {
-  let ctx = s.context;
+  let ctx = s.context.native;
 
   let x = calcPlaybackHeadX(s);
 
@@ -46,7 +46,7 @@ function drawPlaybackHead(s) {
 }
 
 function drawTrimmers(s) {
-  let ctx = s.context;
+  let ctx = s.context.native;
 
   let tWidth = 40; //trimmer width
   let tHeight = s.height-(MARGIN*2); //trimmer height
@@ -124,9 +124,13 @@ class Region {
     return this.dragging;
   }
 
-  setDragging(offsetX,offsetY,bool) {
-    this.offsetX = offsetX-this.getMinX();
-    this.offsetY = offsetY-this.getMinY();
+  setDragging(mouseX,mouseY,bool) {
+    console.log(`
+minX: ${this.getMinX()}
+mouseX: ${mouseX}
+`);
+    this.offsetX = mouseX-this.getMinX();
+    this.offsetY = mouseY-this.getMinY();
 
     this.dragging = bool;
   }
@@ -160,9 +164,54 @@ class DynamicRegion extends Region {
   }
 }
 
+class Context {
+  constructor(native) {
+    this.native = native;
+  }
+
+  enableScissor(x, y, width, height) {
+    this.native.save();
+    this.native.rect(x,y,width,height);
+    this.native.clip();
+    this.native.beginPath();
+  }
+
+  disableScissor() {
+    this.native.restore();
+  }
+
+  setFillStyle(color) {
+    this.native.fillStyle = color;
+  }
+
+  scale(w,h) {
+    this.native.scale(w,h);
+  }
+
+  resetScale() {
+    this.native.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  beginPath() {
+    this.native.beginPath();
+  }
+
+  closePath() {
+    this.native.closePath();
+  }
+
+  fill() {
+    this.native.fill();
+  }
+
+  stroke() {
+    this.native.stroke();
+  }
+}
+
 class Scrubber {
   constructor(ctx,length,width,height,video) {
-    this.context = ctx;
+    this.context = new Context(ctx);
     this.length = length;
     this.currentTime = 0;
 
@@ -173,7 +222,6 @@ class Scrubber {
     this.endTime = this.length;
 
     this.video = video;
-    this.dragOffset = 0;
 
     let $this = this;
 
@@ -222,7 +270,6 @@ class Scrubber {
   onMousedown(x,y) {
     for(let key in this.clickBoxes) {
       let box = this.clickBoxes[key];
-      console.log(`${key}: ${box.intersects(x,y)}`);
       box.setDragging(x,y,box.intersects(x,y));
     }
   }
@@ -243,10 +290,11 @@ class Scrubber {
       this.onUserScrubbed(this.currentTime);
     }
 
-    if(trimmer_1.isDragging())
-      this.beginTime = clamp(calculateTimeFromX(this,x2+trimmer_1.offsetX),0,this.endTime);
-    else if(trimmer_2.isDragging())
-      this.endTime = clamp(calculateTimeFromX(this,x2-trimmer_2.offsetX),this.beginTime,this.length);
+    if(trimmer_1.isDragging()) {
+      console.log(trimmer_2.offsetX);
+      this.beginTime = clamp(calculateTimeFromX(this, x2 + (this.getTrimmerWidth()-trimmer_1.offsetX)), 0, this.endTime);
+    } else if(trimmer_2.isDragging())
+      this.endTime = clamp(calculateTimeFromX(this, x2 - trimmer_2.offsetX), this.beginTime, this.length);
     else if(trim.isDragging()) {
       let timeChange = Math.max(-this.beginTime, Math.min(calculateTimeFromX(this, x2-trim.offsetX),this.beginTime+(this.length-this.endTime))-this.beginTime);
       this.beginTime += timeChange;
@@ -270,23 +318,18 @@ class Scrubber {
     this.trimmerWidth = 40; //trimmer width
     this.trimmerHeight = this.height-(MARGIN*2); //trimmer height
 
-    this.context.clearRect(0,0,this.width,this.height); //Reset the screen for drawing
+    this.context.native.clearRect(0,0,this.width,this.height); //Reset the screen for drawing
 
-    this.context.save(); //Save the unclipped state
+    this.context.enableScissor(MARGIN,MARGIN,this.width-MARGIN*2, this.height-MARGIN*2);
 
-    this.context.rect(MARGIN,MARGIN,this.width-MARGIN*2,this.height - (MARGIN*2)); //Define the clip region
-    this.context.clip(); //Set the clip
-
-    this.context.fillStyle = "#191919";
-    this.context.rect(0,0,this.width,this.height); //Draw the timeline fill
+    this.context.setFillStyle("#191919");
+    this.context.native.rect(0,0,this.width,this.height); //Draw the timeline fill
     this.context.fill();
 
-    this.context.restore(); //Restore the normal "un-clipped" state
-    this.context.save(); //Save the unclipped state again
+    this.context.disableScissor();
 
-    this.context.beginPath(); //Clear the path
-    this.context.rect(MARGIN,MARGIN,this.width-MARGIN*2,this.height - (MARGIN*2)); //Clip everything outside the timeline
-    this.context.clip();
+    //this.context.beginPath(); //Clear the path
+    //this.context.enableScissor(MARGIN,MARGIN,this.width-MARGIN*2,this.height - (MARGIN*2));
 
     //Draw timeline elements here.
 
@@ -296,44 +339,59 @@ class Scrubber {
     let vertScale = timelineHeight/this.video.videoHeight;
     let horizScale = timelineWidth/this.video.videoWidth;
 
+    this.context.beginPath();
+    this.context.enableScissor(MARGIN,MARGIN,timelineWidth,timelineHeight);
+
     this.context.scale(horizScale,vertScale); //Scale the video
 
-    this.context.filter = "blur(5px)"; //Blur it
-    this.context.drawImage(this.video,MARGIN/horizScale,MARGIN/vertScale); //Draw the preview of the video
-    this.context.filter = "none"; //Remove the blur
+    this.context.native.filter = "blur(5px)"; //Blur it
+    this.context.native.drawImage(this.video,MARGIN/horizScale,MARGIN/vertScale); //Draw the preview of the video
+    this.context.native.filter = "none"; //Remove the blur
 
+    this.context.disableScissor();
 
-    this.context.setTransform(1, 0, 0, 1, 0, 0); //Reset transformation matrix
+    this.context.beginPath();
+
+    this.context.resetScale();
+
+    this.context.enableScissor(calculateTimelinePos(this,this.beginTime), MARGIN, calculateTimelinePos(this,this.endTime-this.beginTime)-MARGIN, timelineHeight);
+    this.context.scale(horizScale,vertScale); //Scale the video
+    this.context.native.filter = "blur(2px)";
+    this.context.native.drawImage(this.video,MARGIN/horizScale,MARGIN/vertScale);
+    this.context.native.filter = "none";
+    this.context.disableScissor();
+
+    this.context.resetScale(); //Reset transformation matrix
 
     this.context.beginPath(); //Reset the path
-    this.context.fillStyle = "rgba(0, 0, 0, 0.7)";
-    this.context.rect(MARGIN,MARGIN,calculateTimelinePos(this,this.beginTime)-MARGIN,timelineHeight); //Dim the parts to the left of the trim
-    this.context.rect(calculateTimelinePos(this,this.endTime),MARGIN,timelineWidth,timelineHeight); //To the right
-    this.context.fill(); //Fill
+    this.context.enableScissor(MARGIN,MARGIN,timelineWidth,timelineHeight)
+    this.context.setFillStyle("rgba(0,0,0,0.7)");
+    this.context.native.rect(MARGIN,MARGIN,calculateTimelinePos(this,this.beginTime)-MARGIN,timelineHeight); //Dim the parts to the left of the trim
+    this.context.native.rect(calculateTimelinePos(this,this.endTime),MARGIN,timelineWidth,timelineHeight); //To the right
+    this.context.native.fill(); //Fill
+    this.context.disableScissor();
 
-    this.context.restore(); //Restore the unclipped state
-
-    this.context.beginPath(); //Reset the path
+    this.context.native.beginPath(); //Reset the path
     drawTrimmers(this); //Draw the trimmers
 
     drawPlaybackHead(this);
 
-    this.context.font = "30px Quicksand-Medium";
+    this.context.native.font = "30px Quicksand-Medium";
 
-    this.context.fillStyle = BLUE;
-    this.context.fillText(secondsToTimestamp(this.currentTime),20,40);
+    this.context.setFillStyle(BLUE);
+    this.context.native.fillText(secondsToTimestamp(this.currentTime),20,40);
 
-    this.context.fillStyle = "#fff";
-    this.context.fillText(secondsToTimestamp(this.endTime-this.beginTime),250,40);
+    this.context.native.fillStyle = "#ffffff";
+    this.context.native.fillText(secondsToTimestamp(this.endTime-this.beginTime),250,40);
 
     if(this.trimming) { //Draw the timestamp of the currently-being-dragged trimmer
       let time = this.clickBoxes["trimmer-1"].isDragging() ? this.beginTime : this.endTime;
 
       let x = calculateTimelinePos(this,time)+this.trimmerWidth+5;
       let str = secondsToTimestamp(time);
-      x = Math.min(timelineWidth+MARGIN-this.context.measureText(str).width,x); //Keep the timestamp inside the timeline
-      this.context.fillStyle = "#f2a427"; //Orange
-      this.context.fillText(str,x,MARGIN+this.trimmerHeight/2); //Draw the text
+      x = Math.min(timelineWidth+MARGIN-this.context.native.measureText(str).width,x); //Keep the timestamp inside the timeline
+      this.context.native.fillStyle = "#f2a427"; //Orange
+      this.context.native.fillText(str,x,MARGIN+this.trimmerHeight/2); //Draw the text
     }
 
   }
