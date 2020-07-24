@@ -6,7 +6,7 @@
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.7.0",
     "electron": "^8.2.4",
-    "jquery": "^3.4.1"
+    "jquery": "^3.5.0"
   },
   "devDependencies": {
     "electron-packager": "^14.2.1"
